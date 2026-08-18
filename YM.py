@@ -107,7 +107,7 @@ def add_metadata_to_mp3(file_path, metadata):
     
     # Если тегов нет — создаём новый контейнер ID3
     if audio.tags is None:
-        print("📝 Создаём контейнер для тегов...")
+        print("Создаём контейнер для тегов...")
         audio.add_tags()
     
     # Теперь audio.tags точно существует
@@ -126,8 +126,8 @@ def add_metadata_to_mp3(file_path, metadata):
         try:
             response = requests.get(metadata['cover_url'], timeout=10)
             response.raise_for_status()
-            with open('img.png', 'wb') as f:
-                        f.write(response.content)
+            # with open('img.png', 'wb') as f:
+            #             f.write(response.content)
             if response.status_code == 200:
                 mime = response.headers.get("Content-Type","image/jpeg").split(";")[0]
                 print(f"Content-Type обложки: {mime}")
@@ -140,7 +140,7 @@ def add_metadata_to_mp3(file_path, metadata):
                         data=response.content
                     )
                 )
-                print("\tОбложка добавлена")
+                print('\tОбложка добавлена')
         except Exception as e:
             print(f"\tНе удалось добавить обложку: {e}")
     
@@ -162,7 +162,7 @@ def download_track(track_id, token, output_dir="./downloads"):
 
     client = Client(token).init()
     
-    print('Получение информации о треке...')
+    print('\nПолучение информации о треке...')
     track = client.tracks([track_id])[0]
     metadata = get_track_metadata(track) # получаем метаданные трека в словарь
     filename = f'{metadata['artist']} - {metadata['title']}.mp3'
@@ -179,7 +179,7 @@ def download_track(track_id, token, output_dir="./downloads"):
         print('\n')
     else: print(f'Ошибка скачивания трека: {file_path}')
 
-    print("📝 Добавление метаданных в файл...")
+    print("Добавление метаданных в файл...")
     try:
         add_metadata_to_mp3(file_path, metadata)
     except Exception as e:
@@ -201,9 +201,18 @@ def main():
     tprint ('YM_robber')
     print(full_line_equals)
 
-    token_file = Path("example.txt")
+    if not os.path.exists('token.txt'):
+        try:
+            with open('token.txt', 'x', encoding='utf-8') as f:
+                pass
+        except FileExistsError:
+            print('Файл c токеном уже существует')
 
-    if is_empty('example.txt') == 1:
+
+    token_file = Path('token.txt')
+    
+
+    if is_empty(token_file) == 1:
         print('Для работы нужно получить OAuth-токен')
         client = Client()
         token = client.device_auth(on_code=on_code) # запрашиваю токен
@@ -212,12 +221,12 @@ def main():
         print(f'\trefresh_token: {token.refresh_token}')
         print(f'\texpires_in:    {token.expires_in}')
         # сохраняю в файл
-        with open('example.txt', 'w', encoding='utf-8') as f:
+        with open(token_file, 'w', encoding='utf-8') as f:
             f.write(f'{token.access_token}\n')
             f.write(f'{token.refresh_token}\n')
             f.write(f'{token.expires_in}\n')
         print('\t Файл записан')
-    else: print('\t В файле <example.txt> уже имеются данные \n \t Получение OAuth-токена не требуется\n')
+    else: print(f'\t В файле {token_file} уже имеются данные \n \t Получение OAuth-токена не требуется\n')
 
     lines = token_file.read_text().strip().splitlines()
     access_token = lines[0].strip()    
@@ -236,18 +245,19 @@ def main():
         sys.exit(1)
     print(f"\t ID трека: {track_id}\n")
 
+    dowload_path = input('\n Куда хотите сохранить трек? (вставте путь)\n> ')
 
     
 
 
     # Скачиваем
     try:
-        download_track(track_id, access_token)
+        download_track(track_id, access_token, dowload_path)
         print("=" * 50)
         print("Готово!")
         print("=" * 50)
     except Exception as e:
-        print(f"\n❌ Ошибка: {e}")
+        print(f"\nОшибка: {e}")
         sys.exit(1)
 
 
