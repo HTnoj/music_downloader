@@ -264,8 +264,8 @@ def add_metadata_to_mp3(file_path, metadata):
                 audio.tags.add(
                     APIC(
                         encoding=3,
-                        mime=mime,
-                        type=3,
+                        mime=mime
+,                        type=3,
                         desc='Cover',
                         data=response.content
                     )
