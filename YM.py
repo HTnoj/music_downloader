@@ -73,6 +73,7 @@ def main():
             print("=" * 50)
             print("Готово!")
             print("=" * 50)
+            sys.exit(1)
         except Exception as e:
             print(f"\nОшибка: {e}")
             sys.exit(1)

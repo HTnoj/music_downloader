@@ -117,7 +117,6 @@ def get_tracks_from_album(client, album_id):
         if album.volumes:
             for volume in album.volumes:
                 tracks.extend(volume)  # cобираем все треки со всех дисков
-
         return tracks
 
     except Exception as e:
@@ -145,27 +144,34 @@ def download_collection(track_list, token, output_dir="./downloads"):
     success_count = 0
     error_count = 0
 
+    file_of_cover_downloafded = False
+
     for i, track in enumerate(track_list, start=1):
         print(f"\nТрек {i}/{total}: {track.title}")
         album_name = "Unknown collection"
         if track.albums:
-            album_name = track.albums[0].title
-        
-        artist_names = " & ".join([a.name for a in track.artists])
-        filename = f"{artist_names} - {track.title}.mp3"
+            album_name = f'{track.albums[0].title} ({track.albums[0].year})'
+
+        filename = f'{track.title}.mp3'
         
         track_output_dir = Path(output_dir) / album_name
+        track_output_dir.mkdir(parents=True, exist_ok=True) 
+
+        # скачиваем обложку отдельным файлом (ради вайба)
+        if file_of_cover_downloafded == False:
+                    album = track.albums[0] if track.albums else None
+                    cover_path = track_output_dir / f'{album.title}.jpg'
+                    album.download_cover(cover_path, size='400x400')
+                    print('Файл обложки альбома сохранен')
+                    file_of_cover_downloafded = True
         
         try:
             download_track(track.id, token, str(track_output_dir))
-            download_cover(track.co)
             success_count += 1
         except Exception as e:
             print(f"Ошибка при скачивании трека {track.title}: {e}")
             error_count += 1
             continue
-
-    
 
     print("\n" + "=" * 50)
     print(f"Успешно скачано {success_count} треков")
@@ -187,8 +193,9 @@ def get_track_metadata(track):
     album_year = album.year if album else None
     
     track_number = None
-    if hasattr(album, 'track_number'):
-        track_number = album.track_number
+    track_number = track.albums[0].track_position.index
+    if hasattr(track, 'track_position') and track.track_position:
+        track_number = album.track_position.index
     elif hasattr(track, 'meta_data') and hasattr(track.meta_data, 'number'):
         track_number = track.meta_data.number
 
@@ -264,8 +271,8 @@ def add_metadata_to_mp3(file_path, metadata):
                 audio.tags.add(
                     APIC(
                         encoding=3,
-                        mime=mime
-,                        type=3,
+                        mime=mime,                        
+                        type=3,
                         desc='Cover',
                         data=response.content
                     )
@@ -294,8 +301,9 @@ def download_track(track_id, token, output_dir="./downloads"):
     
     print('\nПолучение информации о треке...')
     track = client.tracks([track_id])[0]
+    # album = track.albums[0]
     metadata = get_track_metadata(track) # получаем метаданные трека в словарь
-    filename = f'{metadata['artist']} - {metadata['title']}.mp3'
+    filename = f'{metadata['title']}.mp3'   #  {metadata['artist']} -
 
     output_path = Path(output_dir) 
     output_path.mkdir(parents=True, exist_ok=True)
@@ -316,4 +324,4 @@ def download_track(track_id, token, output_dir="./downloads"):
         print(f"Ошибка при добавлении метаданных: {e}")
         print("\tФайл скачан, но без метаданных")
     
-    print(f'✅ Трек сохранён: {file_path}')
+    print(f'Трек сохранён: {file_path}')
