@@ -13,15 +13,16 @@ from func import is_empty, on_code, extract_track_id, get_track_metadata, add_me
 
 
 width, _ = shutil.get_terminal_size()
-text = " "
+width_width = shutil.get_terminal_size().columns
+text = ""
 full_line_equals = text.ljust(width, "=")
-
-
+emblem_text1 = text*40 + 'YM_robber'
+emblem_text2 = 'YM_robber'
 
 
 def main():
     print(full_line_equals)
-    tprint ('YM_robber')
+    tprint (emblem_text1)
     print(full_line_equals)
 
     if not os.path.exists('token.txt'):
@@ -48,9 +49,9 @@ def main():
             f.write(f'{token.access_token}\n')
             f.write(f'{token.refresh_token}\n')
             f.write(f'{token.expires_in}\n')
-        print('\t Файл записан')
+        print('\tФайл записан')
     else:
-        print(f'\t В файле {token_file} уже имеются данные \n \t Получение OAuth-токена не требуется\n')
+        print(f'\tВ файле {token_file} уже имеются данные \n \t Получение OAuth-токена не требуется\n')
 
     
     lines = token_file.read_text().strip().splitlines()
@@ -97,7 +98,7 @@ def main():
         download_collection(tracks, access_token, download_path)  
 
     elif collection_type == 'album':
-            print(f"\tНайден альбом. ID: {collection_id}")
+            print(f"\tНайден альбом. Название: ")
             tracks = get_tracks_from_album(client, collection_id)
             download_path = input('\nКуда хотите сохранить альбом? (вставте путь)\n> ')
             download_collection(tracks, access_token, download_path)

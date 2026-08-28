@@ -162,7 +162,7 @@ def download_collection(track_list, token, output_dir="./downloads"):
                     album = track.albums[0] if track.albums else None
                     cover_path = track_output_dir / f'{album.title}.jpg'
                     album.download_cover(cover_path, size='400x400')
-                    print('Файл обложки альбома сохранен')
+                    print('!!! Файл обложки альбома сохранен')
                     file_of_cover_downloafded = True
         
         try:
@@ -194,10 +194,10 @@ def get_track_metadata(track):
     
     track_number = None
     track_number = track.albums[0].track_position.index
-    if hasattr(track, 'track_position') and track.track_position:
-        track_number = album.track_position.index
-    elif hasattr(track, 'meta_data') and hasattr(track.meta_data, 'number'):
-        track_number = track.meta_data.number
+    #if hasattr(track, 'track_position') and track.track_position:
+    #    track_number = album.track_position.index
+    #elif hasattr(track, 'meta_data') and hasattr(track.meta_data, 'number'):
+    #    track_number = track.meta_data.number
 
     
     cover_url = None
@@ -207,16 +207,25 @@ def get_track_metadata(track):
         except Exception:
             if hasattr(album, 'cover_uri') and album.cover_uri:
                 cover_url = album.cover_uri.replace('%%', '400x400')
+
+    # допольнительная информация о треке. в ЯМ обычно указывается в названии трека серым цветом  
+    # example: Digeridoo Live in Cornwall, 1990
+    track_version = track.version
     
     metadata = {
         "title": track.title,
+        "version": track_version,
         "artist": artists_str,
         "album": album_title,
         "year": album_year,
         "track_number": track_number,
         "cover_url": cover_url
     }
-    print(f'\tНазвение трека: {metadata["title"]}')
+    # если есть приписка к названию трека -- выводим ее 
+    if metadata['version'] is not None:
+        print(f'\tНазвение трека: {metadata["title"]} ({metadata["version"]})')
+    else: print(f'\tНазвение трека: {metadata["title"]}')
+
     print(f'\tАртист: {metadata["artist"]}')
     print(f'\tАльбом: {metadata["album"]}')
     print(f'\tГод: {metadata["year"]}')
@@ -245,10 +254,16 @@ def add_metadata_to_mp3(file_path, metadata):
     
     # если тегов нет — создаём новый контейнер ID3
     if audio.tags is None:
-        print("Создаём контейнер для тегов...")
+        print("\tСоздаём контейнер для тегов...")
         audio.add_tags()
-    
-    audio.tags.add(TIT2(encoding=3, text=metadata['title']))
+
+    # если есть приписка -- добавляем ее в метаданные
+    if metadata['version'] is not None:
+        audio.tags.add(TIT2(encoding=3,
+                            text=metadata['title']+ ' (' + metadata['version'] + ')'
+                            ))
+    else: audio.tags.add(TIT2(encoding=3, text=metadata['title']))
+
     audio.tags.add(TPE1(encoding=3, text=metadata['artist']))
     audio.tags.add(TALB(encoding=3, text=metadata['album']))
     
@@ -267,7 +282,7 @@ def add_metadata_to_mp3(file_path, metadata):
                 #f.write(response.content)
             if response.status_code == 200:
                 mime = response.headers.get("Content-Type","image/jpeg").split(";")[0]
-                print(f"Content-Type обложки: {mime}")
+                print(f"\tContent-Type обложки: {mime}")
                 audio.tags.add(
                     APIC(
                         encoding=3,
@@ -298,13 +313,15 @@ def download_track(track_id, token, output_dir="./downloads"):
     '''
 
     client = Client(token).init()
-    
     print('\nПолучение информации о треке...')
     track = client.tracks([track_id])[0]
     # album = track.albums[0]
     metadata = get_track_metadata(track) # получаем метаданные трека в словарь
-    filename = f'{metadata['title']}.mp3'   #  {metadata['artist']} -
 
+    if metadata['version'] is not None:
+        filename = f'{metadata["title"]} ({metadata["version"]}).mp3'   
+    else: filename = f'{metadata["title"]}.mp3'                            
+    
     output_path = Path(output_dir) 
     output_path.mkdir(parents=True, exist_ok=True)
     
@@ -315,7 +332,9 @@ def download_track(track_id, token, output_dir="./downloads"):
     if file_path.exists():
         print(f'Трек скачан: {file_path}')
         print('\n')
-    else: print(f'Ошибка скачивания трека: {file_path}')
+    else:
+        print(f'Ошибка скачивания трека: {file_path}')
+        print('_'*100)
 
     print("Добавление метаданных в файл...")
     try:
@@ -325,3 +344,4 @@ def download_track(track_id, token, output_dir="./downloads"):
         print("\tФайл скачан, но без метаданных")
     
     print(f'Трек сохранён: {file_path}')
+    print('_'*100)
