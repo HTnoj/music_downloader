@@ -67,10 +67,11 @@ def main():
 
     track_id = extract_track_id(url)
     if track_id:
+        collection_type = 'track'
         print(f"\tID трека: {track_id}\n")
         download_path = input('\nКуда хотите сохранить трек? (вставте путь)\n> ')
         try:
-            download_track(track_id, access_token, download_path)
+            download_track(track_id, access_token, collection_type, download_path)
             print("=" * 50)
             print("Готово!")
             print("=" * 50)
@@ -86,7 +87,7 @@ def main():
         print("\t ~ https://music.yandex.ru/album/12345")
         print("\t ~ https://music.yandex.ru/users/username/playlists/12345")
         print("\t ~ https://music.yandex.ru/track/67890")
-        sys.exit(1)
+        sys.exit(1) 
         
     collection_type = collection_info['type']
     collection_id = collection_info['id']
@@ -95,13 +96,13 @@ def main():
         print(f"\tНайден плейлист. ID: {collection_id}")
         tracks = get_tracks_from_playlist(client, collection_id)
         download_path = input('\nКуда хотите сохранить плейлист? (вставте путь)\n> ')
-        download_collection(tracks, access_token, download_path)  
+        download_collection(tracks, access_token, collection_type, download_path)  
 
     elif collection_type == 'album':
             print(f"\tНайден альбом. Название: ")
             tracks = get_tracks_from_album(client, collection_id)
             download_path = input('\nКуда хотите сохранить альбом? (вставте путь)\n> ')
-            download_collection(tracks, access_token, download_path)
+            download_collection(tracks, access_token, collection_type, download_path)
 
     
 

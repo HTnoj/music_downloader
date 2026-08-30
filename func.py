@@ -123,7 +123,7 @@ def get_tracks_from_album(client, album_id):
         print(f"Ошибка при получении альбома: {e}")
         return []
 
-def download_collection(track_list, token, output_dir="./downloads"):
+def download_collection(track_list, token, collection_type, output_dir="./downloads"):
     '''
     Cкачивание альбома или плейлиста по их id из Яндекс Музыки.
     
@@ -166,7 +166,7 @@ def download_collection(track_list, token, output_dir="./downloads"):
                     file_of_cover_downloafded = True
         
         try:
-            download_track(track.id, token, str(track_output_dir))
+            download_track(track.id, token, str(track_output_dir), collection_type)
             success_count += 1
         except Exception as e:
             print(f"Ошибка при скачивании трека {track.title}: {e}")
@@ -184,16 +184,17 @@ def download_collection(track_list, token, output_dir="./downloads"):
 
 
 
-def get_track_metadata(track):
+def get_track_metadata(track, collection_type):
     artist_names = [artist.name for artist in track.artists]
     artists_str = " & ".join(artist_names)  # "Artist1 & Artist2"
     
     album = track.albums[0] if track.albums else None
     album_title = album.title if album else "Unknown Album"
     album_year = album.year if album else None
-    
-    track_number = None
-    track_number = track.albums[0].track_position.index
+    if (collection_type == 'album' or collection_type == 'playlist'):
+        track_number = None
+        track_number = track.albums[0].track_position.index
+    else: track_number = None
     #if hasattr(track, 'track_position') and track.track_position:
     #    track_number = album.track_position.index
     #elif hasattr(track, 'meta_data') and hasattr(track.meta_data, 'number'):
@@ -302,13 +303,14 @@ def add_metadata_to_mp3(file_path, metadata):
 
 
 
-def download_track(track_id, token, output_dir="./downloads"):
+def download_track(track_id, token, collection_type, output_dir="./downloads"):
     '''
     Cкачивание трека по его id из Яндекс Музыки.
     
     Аргументы:
         track_id (str): ID трека
         token (str): OAuth-токен
+        collection_type (str): тип коллекции (албом, плейлист или просто трек)
         output_dir (str): Папка для сохранения
     '''
 
@@ -316,7 +318,7 @@ def download_track(track_id, token, output_dir="./downloads"):
     print('\nПолучение информации о треке...')
     track = client.tracks([track_id])[0]
     # album = track.albums[0]
-    metadata = get_track_metadata(track) # получаем метаданные трека в словарь
+    metadata = get_track_metadata(track, collection_type) # получаем метаданные трека в словарь
 
     if metadata['version'] is not None:
         filename = f'{metadata["title"]} ({metadata["version"]}).mp3'   
@@ -327,7 +329,6 @@ def download_track(track_id, token, output_dir="./downloads"):
     
     file_path = output_path / filename
     
-
     track.download(str(file_path))
     if file_path.exists():
         print(f'Трек скачан: {file_path}')
