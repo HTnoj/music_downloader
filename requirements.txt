@@ -1,0 +1,5 @@
+yandex-music>=2.0.0
+mutagen>=1.47.0
+requests>=2.31.0
+pyperclip>=1.8.2
+art>=6.0
