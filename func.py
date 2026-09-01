@@ -20,6 +20,31 @@ def on_code(code):
     print(f'\n Откройте {code.verification_url} и введите код: {code.user_code} (скопирован в буфер обмена)')
     pyperclip.copy(code.user_code) # код в буфер обмена для удобства
 
+def clean_filename(filename):
+    # Запрещённые символы: \ / : * ? " < > |
+    
+    replacements = {
+        '/': '   ',     # слэш
+        '\\': '   ',    # обратный слэш
+        ':': ';',       # двоеточие
+        '*': ' ',       # звёздочка
+        '?': ' ',       # вопросительный знак
+        '"': "'",       # кавычки
+        '<': '[',       # меньше
+        '>': ']',       # больше
+        '|': ' ! ',     # вертикальная черта
+    }
+
+    cleaned = filename
+    
+    for char, replacement in replacements.items():
+        cleaned = cleaned.replace(char, replacement)
+    
+    if len(cleaned) > 200:
+        cleaned = cleaned[:200]
+    
+    return cleaned   
+
 
 def extract_track_id(url):
     '''
@@ -59,12 +84,21 @@ def extract_collection_id(url):
     if match:
         return {'type': 'album', 'id': match.group(1)}
 
+
+
     # для плейлистов
+    match = re.search(r'/playlists/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', url, re.IGNORECASE)
+    if match: 
+        return {'type': 'playlist', 'id': match.group(1)}
+    
     match = re.search(r'/playlists/(\d+)', url)     # в строке url ищем шаблонную стрроку '/playlists/(\d+)'
                                                     # где (\d+) означает группу из цифр(\d), которую мы хотим найти.
                                                     # + означает, что цифр должно быть больше 1. Больше информации в документации re
     if match:
         return {'type': 'playlist', 'id': match.group(1)}
+
+    
+    
 
     # случай, если пользователь сразу прислал id альбома или плейлиста вместо ссылки 
     if re.match(r'^\d+$', url): return url 
@@ -77,16 +111,19 @@ def get_tracks_from_playlist(client, playlist_id):
     а иногда объект Track, который содержит все поля трека, нужные для метаданных 
     '''
     try:
-        # извлекаем плейлист по его id
-        # 
-        playlists = client.users_playlists(playlist_id)
-        if not playlists:
+        # Получаем плейлист напрямую по ID
+        playlist = client.playlist(playlist_id) 
+        
+        if not playlist:
+            print('Плейлист не найден')
             return []
         
-        # playlists - список разных версий плейлистов, которые создавал пользователь. берем первый
-        pleaylist = playlists[0]
+        print(f'\tНазвание плейлиста: {playlist.title}')
+        print(f'\tВладелец: {playlist.owner.login}')
         
-        tracks = pleaylist.tracks if pleaylist.tracks else pleaylist.fetch_tracks()
+        
+        
+        tracks = playlist.tracks if playlist.tracks else playlist.fetch_tracks()
     
         track_list = []
         for short_track in tracks:
@@ -101,7 +138,7 @@ def get_tracks_from_playlist(client, playlist_id):
                 except:
                     continue
                         
-        return track_list
+        return track_list, playlist
     except Exception as e:
         print(f"Ошибка при получении плейлиста: {e}")
         return[]
@@ -111,7 +148,11 @@ def get_tracks_from_album(client, album_id):
         album = client.albums_with_tracks(album_id)
 
         if not album:
+            print("Альбом не найден")
             return []
+
+        print(f'\tНазвание альбома: {album.title}')
+        
 
         tracks = []
         if album.volumes:
@@ -123,19 +164,13 @@ def get_tracks_from_album(client, album_id):
         print(f"Ошибка при получении альбома: {e}")
         return []
 
-def download_collection(track_list, token, collection_type, output_dir="./downloads"):
-    '''
-    Cкачивание альбома или плейлиста по их id из Яндекс Музыки.
-    
-    Аргументы:
-        track_list (obj): список треков
-        token (str): OAuth-токен
-        output_dir (str): Папка для сохранения
-    '''
+def download_album(track_list, token, output_dir="./downloads"):
     if not track_list:
         print("\nСписок треков пуст.")
         return
-    
+
+    collection_type = 'album'
+
     total = len(track_list)
     print('\n')
     print(f"Найдено треков: {total}")
@@ -151,26 +186,77 @@ def download_collection(track_list, token, collection_type, output_dir="./downlo
         album_name = "Unknown collection"
         if track.albums:
             album_name = f'{track.albums[0].title} ({track.albums[0].year})'
+            album_name = clean_filename(album_name)
+            
 
         filename = f'{track.title}.mp3'
-        
+
         track_output_dir = Path(output_dir) / album_name
         track_output_dir.mkdir(parents=True, exist_ok=True) 
 
         # скачиваем обложку отдельным файлом (ради вайба)
         if file_of_cover_downloafded == False:
-                    album = track.albums[0] if track.albums else None
-                    cover_path = track_output_dir / f'{album.title}.jpg'
-                    album.download_cover(cover_path, size='400x400')
-                    print('!!! Файл обложки альбома сохранен')
-                    file_of_cover_downloafded = True
+            album = track.albums[0] if track.albums else None
+            cover_path = track_output_dir / f'{clean_filename(album.title)}.jpg'
+            album.download_cover(cover_path, size='400x400')
+            print('!!! Файл обложки альбома сохранен')
+            file_of_cover_downloafded = True
         
         try:
-            download_track(track.id, token, str(track_output_dir), collection_type)
+            download_track(track.id, token, collection_type, str(track_output_dir))
             success_count += 1
         except Exception as e:
             print(f"Ошибка при скачивании трека {track.title}: {e}")
             error_count += 1
+            print('_'*100)
+            continue
+
+    print("\n" + "=" * 50)
+    print(f"Успешно скачано {success_count} треков")
+    print(f"С ошибками скачано {error_count} треков")
+    print("=" * 50)
+
+
+
+def download_playlist(playlist, track_list, token, output_dir="./downloads"):
+    if not track_list:
+        print("\nСписок треков пуст.")
+        return
+
+    collection_type = 'playlist'
+
+    playlist_name = clean_filename(playlist.title)
+    playlist_output_dir = Path(output_dir) / playlist_name
+    playlist_output_dir.mkdir(parents=True, exist_ok=True)
+
+    total = len(track_list)
+    print('\n')
+    print(f"Найдено треков: {total}")
+    print("=" * 50)
+    
+    success_count = 0
+    error_count = 0
+
+    file_of_cover_downloafded = False
+
+    for i, track in enumerate(track_list, start=1):
+        print(f"\nТрек {i}/{total}: {track.title}")
+
+        # # скачиваем обложку отдельным файлом (ради вайба)
+        # if file_of_cover_downloafded == False:
+        #     album = track.albums[0] if track.albums else None
+        #     cover_path = playlist_output_dir / f'{album.title}.jpg'
+        #     album.download_cover(cover_path, size='400x400')
+        #     print('!!! Файл обложки альбома сохранен')
+        #     file_of_cover_downloafded = True
+        
+        try:
+            download_track(track.id, token, collection_type, str(playlist_output_dir))
+            success_count += 1
+        except Exception as e:
+            print(f"Ошибка при скачивании трека {track.title}: {e}")
+            error_count += 1
+            print('_'*100)
             continue
 
     print("\n" + "=" * 50)
@@ -191,7 +277,7 @@ def get_track_metadata(track, collection_type):
     album = track.albums[0] if track.albums else None
     album_title = album.title if album else "Unknown Album"
     album_year = album.year if album else None
-    if (collection_type == 'album' or collection_type == 'playlist'):
+    if (collection_type == 'album'):
         track_number = None
         track_number = track.albums[0].track_position.index
     else: track_number = None
@@ -321,8 +407,11 @@ def download_track(track_id, token, collection_type, output_dir="./downloads"):
     metadata = get_track_metadata(track, collection_type) # получаем метаданные трека в словарь
 
     if metadata['version'] is not None:
-        filename = f'{metadata["title"]} ({metadata["version"]}).mp3'   
-    else: filename = f'{metadata["title"]}.mp3'                            
+        filename = f'{metadata["title"]} ({metadata["version"]}).mp3' 
+        filename = clean_filename(filename)
+    else:
+        filename = f'{metadata["title"]}.mp3'
+        filename = clean_filename(filename)                            
     
     output_path = Path(output_dir) 
     output_path.mkdir(parents=True, exist_ok=True)

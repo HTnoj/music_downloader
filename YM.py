@@ -9,7 +9,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC
 import requests
 import shutil
-from func import is_empty, on_code, extract_track_id, get_track_metadata, add_metadata_to_mp3, download_track, extract_collection_id, get_tracks_from_playlist, get_tracks_from_album, download_collection
+from func import is_empty, on_code, extract_track_id, get_track_metadata, add_metadata_to_mp3, download_track, extract_collection_id, get_tracks_from_playlist, get_tracks_from_album, download_playlist, download_album
 
 
 width, _ = shutil.get_terminal_size()
@@ -60,6 +60,10 @@ def main():
     expires_in = int(lines[2].strip())
 
     client = Client(access_token)
+    client.init()
+    user_id = client.me.account.uid
+    print(f"Ваш user_id: {user_id}")
+    
 
     print(f'Ваш OAuth-токен: {access_token}\n')
     url = input("Вставьте ссылку на трек, албом или плейлист\n> ").strip()
@@ -94,15 +98,14 @@ def main():
 
     if collection_type == 'playlist':
         print(f"\tНайден плейлист. ID: {collection_id}")
-        tracks = get_tracks_from_playlist(client, collection_id)
-        download_path = input('\nКуда хотите сохранить плейлист? (вставте путь)\n> ')
-        download_collection(tracks, access_token, collection_type, download_path)  
+        tracks, playlist = get_tracks_from_playlist(client, collection_id)
+        download_path = input('\nКуда хотите сохранить плейлист? (вставте путь)\n> ') #r'C:\Users\User\OneDrive\Рабочий стол\music_downloader\.gitignore\downloads\playlists'
+        download_playlist(playlist, tracks, access_token, download_path)  
 
     elif collection_type == 'album':
-            print(f"\tНайден альбом. Название: ")
             tracks = get_tracks_from_album(client, collection_id)
-            download_path = input('\nКуда хотите сохранить альбом? (вставте путь)\n> ')
-            download_collection(tracks, access_token, collection_type, download_path)
+            download_path = input('\nКуда хотите сохранить альбом? (вставте путь)\n> ') #r"C:\Users\User\OneDrive\Рабочий стол\music_downloader\.gitignore\downloads\albums"
+            download_album(tracks, access_token, download_path)
 
     
 
