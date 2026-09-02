@@ -20,6 +20,7 @@ def on_code(code):
     print(f'\n Откройте {code.verification_url} и введите код: {code.user_code} (скопирован в буфер обмена)')
     pyperclip.copy(code.user_code) # код в буфер обмена для удобства
 
+
 def clean_filename(filename):
     # Запрещённые символы: \ / : * ? " < > |
     
@@ -66,6 +67,7 @@ def extract_track_id(url):
 
     return None
 
+
 def extract_collection_id(url):
     '''
     Извлечение id плейлиста или альбома из сслыки, которую отправляет пользователь
@@ -105,6 +107,7 @@ def extract_collection_id(url):
     
     return None
 
+
 def get_tracks_from_playlist(client, playlist_id):
     '''
     в плейлистах иногда возвращаются объекты short_track, которые содержать только id трека, 
@@ -143,6 +146,7 @@ def get_tracks_from_playlist(client, playlist_id):
         print(f"Ошибка при получении плейлиста: {e}")
         return[]
 
+
 def get_tracks_from_album(client, album_id):
     try:
         album = client.albums_with_tracks(album_id)
@@ -163,6 +167,7 @@ def get_tracks_from_album(client, album_id):
     except Exception as e:
         print(f"Ошибка при получении альбома: {e}")
         return []
+
 
 def download_album(track_list, token, output_dir="./downloads"):
     if not track_list:
@@ -217,7 +222,6 @@ def download_album(track_list, token, output_dir="./downloads"):
     print("=" * 50)
 
 
-
 def download_playlist(playlist, track_list, token, output_dir="./downloads"):
     if not track_list:
         print("\nСписок треков пуст.")
@@ -264,11 +268,6 @@ def download_playlist(playlist, track_list, token, output_dir="./downloads"):
     print(f"С ошибками скачано {error_count} треков")
     print("=" * 50)
 
-    
-
-
-
-
 
 def get_track_metadata(track, collection_type):
     artist_names = [artist.name for artist in track.artists]
@@ -280,7 +279,10 @@ def get_track_metadata(track, collection_type):
     if (collection_type == 'album'):
         track_number = None
         track_number = track.albums[0].track_position.index
-    else: track_number = None
+
+    # if collection_type == 'playlist' and hasattr(track, 'track_position'):
+    #     track_number = track.track_position.index
+
     #if hasattr(track, 'track_position') and track.track_position:
     #    track_number = album.track_position.index
     #elif hasattr(track, 'meta_data') and hasattr(track.meta_data, 'number'):
@@ -322,6 +324,7 @@ def get_track_metadata(track, collection_type):
 
     return metadata
 
+
 def download_cover(cover_url, save_path):
     response = requests.get(cover_url, timeout=10)
     if response.status_code == 200:
@@ -329,6 +332,7 @@ def download_cover(cover_url, save_path):
             f.write(response.content)
         return True
     return False
+
 
 def add_metadata_to_mp3(file_path, metadata):
     '''Добавляет метаданные в MP3-файл
@@ -386,7 +390,6 @@ def add_metadata_to_mp3(file_path, metadata):
     # сохр изменения
     audio.save()
     print("\tМетаданные добавлены")
-
 
 
 def download_track(track_id, token, collection_type, output_dir="./downloads"):
