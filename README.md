@@ -47,6 +47,13 @@ git clone https://github.com/HTnoj/music_downloader.git
 cd music_downloader
 ```
 
+или, если нужны лишь файлы программы (скачается намного быстрее)
+
+```bash
+git clone --depth 1 https://github.com/HTnoj/music_downloader.git
+cd music_downloader
+```
+
 ИЛИ
 
 Зайдите на https://github.com/HTnoj/music_downloader
