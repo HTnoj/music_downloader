@@ -9,6 +9,8 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC
 import requests
 import shutil
+from tkinter import Tk
+from tkinter.filedialog import askdirectory
 
 def is_empty(file):
     if (os.path.exists(file) and os.path.getsize(file) == 0):
@@ -44,7 +46,19 @@ def clean_filename(filename):
     if len(cleaned) > 200:
         cleaned = cleaned[:200]
     
-    return cleaned   
+    return cleaned  
+
+
+def select_folder():
+    root = Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    folder_path = askdirectory(
+        title="Выберите папку для сохранения",
+        mustexist=True  
+    )
+    root.destroy()
+    return folder_path if folder_path else None
 
 
 def extract_track_id(url):
@@ -279,7 +293,7 @@ def get_track_metadata(track, collection_type):
     if (collection_type == 'album'):
         track_number = None
         track_number = track.albums[0].track_position.index
-
+    else: track_number = None
     # if collection_type == 'playlist' and hasattr(track, 'track_position'):
     #     track_number = track.track_position.index
 
@@ -351,7 +365,7 @@ def add_metadata_to_mp3(file_path, metadata):
     # если есть приписка -- добавляем ее в метаданные
     if metadata['version'] is not None:
         audio.tags.add(TIT2(encoding=3,
-                            text=metadata['title']+ ' (' + metadata['version'] + ')'
+                            text=metadata['title'] # + ' (' + metadata['version'] + ')'
                             ))
     else: audio.tags.add(TIT2(encoding=3, text=metadata['title']))
 

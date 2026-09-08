@@ -27,7 +27,6 @@
 
 ## Установка
 ### 1️⃣ Установка Python (если нет)
-Если Python ещё не установлен:
 1) Перейдите на [python.org](https://www.python.org/)
 2) Скачайте установщик для вашей ОС
    
@@ -38,61 +37,50 @@
 Проверка:
 ```bash
 python --version
+
+# если версия ниже 3.8, обновите
 ```
+
 <br>
 
-### 2️⃣ Скачать программу
+### 2️⃣ Установка uv
 ```bash
-git clone https://github.com/HTnoj/music_downloader.git
-cd music_downloader
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-или, если нужны лишь файлы программы (скачается намного быстрее)
+Проверка:
+```bash
+uv --version
 
+# пример вывода "uv 0.12.10 ... "
+```
+
+<br>
+
+### 3️⃣ Скачать проект
 ```bash
 git clone --depth 1 https://github.com/HTnoj/music_downloader.git
+```
+```bash
 cd music_downloader
 ```
 
-ИЛИ
-
-Зайдите на https://github.com/HTnoj/music_downloader
-
-Нажмите "Code" → "Download ZIP"
-
-Распакуйте архив в удобное место
-
-<br>
-
-### 3️⃣ Создать виртуальное окружение (рекомендуется)
-``` bash
-# Перейдите в папку с программой
-cd music_downloader
-
-# Создайте виртуальное окружение
-python -m venv venv
-
-# Активируйте его:
-# На Windows:
-venv\Scripts\activate
-# На macOS/Linux:
-source venv/bin/activate
-```
-
-<br>
-
-### 4️⃣ Установить зависимости
+Устанавливаем как глобальную команду
 ```bash
-pip install -r requirements.txt
+uv tool install .
 ```
 
 <br>
 
-## Использование
+После этого программу можно запустить из любого места в cmd\terminal, прописав:
 ```bash
-# введите в консоли
-python YM.py
+ym-robber
 ```
+
 
 ## Пример
 
@@ -171,6 +159,15 @@ ________________________________________________________________________________
 Успешно скачано 13 треков
 С ошибками скачано 0 треков
 ==================================================
+```
+
+<br>
+
+## Удаление
+```bash
+uv tool uninstall ym-robber
+
+# из любого места
 ```
 
 ## Лицензия

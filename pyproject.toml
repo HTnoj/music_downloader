@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ym-robber"
+version = "1.0.0"
+description = "Скачивание музыки из Яндекс Музыки с метаданными"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "HTnoj", email = "netesovivan2005@gmail.com"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "yandex-music>=2.0.0",
+    "mutagen>=1.47.0",
+    "requests>=2.31.0",
+    "pyperclip>=1.8.2",
+    "art>=6.0",
+]
+
+[project.scripts]
+ym-robber = "YM:main"
+
+[tool.setuptools.packages.find]
+include = ["*"]

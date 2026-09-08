@@ -9,7 +9,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC
 import requests
 import shutil
-from func import is_empty, on_code, extract_track_id, get_track_metadata, add_metadata_to_mp3, download_track, extract_collection_id, get_tracks_from_playlist, get_tracks_from_album, download_playlist, download_album
+from func import is_empty, on_code, extract_track_id, get_track_metadata, add_metadata_to_mp3, download_track, extract_collection_id, get_tracks_from_playlist, get_tracks_from_album, download_playlist, download_album, select_folder
 
 
 width, _ = shutil.get_terminal_size()
@@ -64,48 +64,84 @@ def main():
     user_id = client.me.account.uid
     print(f"Ваш user_id: {user_id}")
     
-
     print(f'Ваш OAuth-токен: {access_token}\n')
-    url = input("Вставьте ссылку на трек, албом или плейлист\n> ").strip()
 
+    while True:
+        url = input("Вставьте ссылку на трек, альбом или плейлист\n> ").strip()
 
-    track_id = extract_track_id(url)
-    if track_id:
-        collection_type = 'track'
-        print(f"\tID трека: {track_id}\n")
-        download_path = input('\nКуда хотите сохранить трек? (вставте путь)\n> ')
-        try:
-            download_track(track_id, access_token, collection_type, download_path)
-            print("=" * 50)
-            print("Готово!")
-            print("=" * 50)
-            sys.exit(1)
-        except Exception as e:
-            print(f"\nОшибка: {e}")
-            sys.exit(1)
+        track_id = extract_track_id(url)
+        if track_id:
+            collection_type = 'track'
+            print(f"\tID трека: {track_id}\n")
+            while True:
+                print('Выберите папку')
+                download_path = select_folder()
+                if download_path is None:
+                    print('Папка не выбрана.')
+                    continue
+                print(f'Выбранная папка: {download_path}')
+                break
+                 
+            try:
+                download_track(track_id, access_token, collection_type, download_path)
+                print('Операция завершена')
+                input('\nНажмите Enter, чтобы продолжить скачивать...'
+                '\nили \'ctrl + c\' чтобы завершить работу программы...\n')
+                continue
+            except Exception as e:
+                print(f"\nОшибка: {e}\n")
+                continue
+                
 
-    collection_info = extract_collection_id(url)
-    if not collection_info:
-        print("Не удалось распознать ссылку.")
-        print("Поддерживаются ссылки вида:")
-        print("\t ~ https://music.yandex.ru/album/12345")
-        print("\t ~ https://music.yandex.ru/users/username/playlists/12345")
-        print("\t ~ https://music.yandex.ru/track/67890")
-        sys.exit(1) 
-        
-    collection_type = collection_info['type']
-    collection_id = collection_info['id']
+        collection_info = extract_collection_id(url)
+        if not collection_info:
+            print("Не удалось распознать ссылку.")
+            print("Поддерживаются ссылки вида:")
+            print("\t ~ https://music.yandex.ru/album/12345")
+            print("\t ~ https://music.yandex.ru/users/username/playlists/12345")
+            print("\t ~ https://music.yandex.ru/track/67890\n")
+            continue
 
-    if collection_type == 'playlist':
-        print(f"\tНайден плейлист. ID: {collection_id}")
-        tracks, playlist = get_tracks_from_playlist(client, collection_id)
-        download_path = input('\nКуда хотите сохранить плейлист? (вставте путь)\n> ') #r'C:\Users\User\OneDrive\Рабочий стол\music_downloader\.gitignore\downloads\playlists'
-        download_playlist(playlist, tracks, access_token, download_path)  
+        collection_type = collection_info['type']
+        collection_id = collection_info['id']
 
-    elif collection_type == 'album':
+        if collection_type == 'playlist':
+            print(f"\tНайден плейлист. ID: {collection_id}")
+            tracks, playlist = get_tracks_from_playlist(client, collection_id)
+            while True:
+                print('Выберите папку')
+                download_path = select_folder()
+                if download_path is None:
+                    print('Папка не выбрана.')
+                    continue
+                print(f'Выбранная папка: {download_path}')
+                break
+            download_playlist(playlist, tracks, access_token, download_path)
+
+        elif collection_type == 'album':
             tracks = get_tracks_from_album(client, collection_id)
-            download_path = input('\nКуда хотите сохранить альбом? (вставте путь)\n> ') #r"C:\Users\User\OneDrive\Рабочий стол\music_downloader\.gitignore\downloads\albums"
+            while True:
+                print('Выберите папку')
+                download_path = select_folder()
+                if download_path is None:
+                    print('Папка не выбрана.')
+                    continue
+                print(f'Выбранная папка: {download_path}')
+                break
             download_album(tracks, access_token, download_path)
+
+        print('Операция завершена')
+        
+        ans = input('\nНажмите Enter, чтобы продолжить скачивать...'
+                    '\nИли введите \'exit\' чтобы завершить работу программы...\n')
+        if ans.lower() == 'exit':
+            print('\n\nДо свидания!')
+            sys.exit()
+        elif ans.lower() == "":
+            continue
+        else: continue
+        
+            
 
     
 
