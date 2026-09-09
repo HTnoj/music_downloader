@@ -9,7 +9,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC
 import requests
 import shutil
-from func import is_empty, on_code, extract_track_id, get_track_metadata, add_metadata_to_mp3, download_track, extract_collection_id, get_tracks_from_playlist, get_tracks_from_album, download_playlist, download_album, select_folder
+from ym_robber.func import is_empty, on_code, extract_track_id, get_track_metadata, add_metadata_to_mp3, download_track, extract_collection_id, get_tracks_from_playlist, get_tracks_from_album, download_playlist, download_album, select_folder
 
 
 width, _ = shutil.get_terminal_size()

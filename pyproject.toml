@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ym-robber = "YM:main"
+ym-robber = "ym_robber.main:main"
 
 [tool.setuptools.packages.find]
 include = ["*"]
