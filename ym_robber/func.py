@@ -1,4 +1,4 @@
-from yandex_music import Client
+from yandex_music import Client, Album, Playlist, Track
 import pyperclip
 import os
 import re
@@ -6,7 +6,7 @@ from pathlib import Path
 from art import tprint
 import sys
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC
+from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC, TYER, TPOS
 import requests
 import shutil
 from tkinter import Tk
@@ -133,11 +133,7 @@ def get_tracks_from_playlist(client, playlist_id):
         
         if not playlist:
             print('Плейлист не найден')
-            return []
-        
-        print(f'\tНазвание плейлиста: {playlist.title}')
-        print(f'\tВладелец: {playlist.owner.login}')
-        
+            return [], None
         
         
         tracks = playlist.tracks if playlist.tracks else playlist.fetch_tracks()
@@ -154,11 +150,24 @@ def get_tracks_from_playlist(client, playlist_id):
                     track_list.append(track_obj)
                 except:
                     continue
+
+        print(f'\tНазвание плейлиста: {playlist.title}')
+        print(f'\tВладелец: {playlist.owner.login}')
+        total = len(tracks)
+        print(f"\tНайдено треков: {total}")
+        print("=" * 60)
+        print('Список треков:')
+        
+        for track in track_list:
+            artists = ''
+            if track.artists:
+                artists = ' - ' + ', '.join(artist.name for artist in track.artists)
+            print(f'\t>  {track.title + artists}')
                         
         return track_list, playlist
     except Exception as e:
         print(f"Ошибка при получении плейлиста: {e}")
-        return[]
+        return[], None
 
 
 def get_tracks_from_album(client, album_id):
@@ -167,33 +176,58 @@ def get_tracks_from_album(client, album_id):
 
         if not album:
             print("Альбом не найден")
-            return []
+            return [], None
 
-        print(f'\tНазвание альбома: {album.title}')
-        
+        # print(f'\tНазвание альбома: {album.title}')
 
         tracks = []
         if album.volumes:
             for volume in album.volumes:
                 tracks.extend(volume)  # cобираем все треки со всех дисков
-        return tracks
+
+        print(f'\nНазвание альбома: {album.title}')
+        print(f"Исполнитель: {', '.join([artist.name for artist in album.artists])}")
+        print(f'Год: {album.year}')
+        total = len(tracks)
+        print(f"Найдено треков: {total}")
+        print("=" * 60)
+        print('Список треков:')
+
+
+
+        for track in tracks:
+                artists = ''
+                if track.artists:
+                    artists = ' - ' + ', '.join(artist.name for artist in track.artists)
+                print(f'\t>  {track.title + artists}')
+
+        return tracks, album
+    
 
     except Exception as e:
         print(f"Ошибка при получении альбома: {e}")
-        return []
+        return [], None
 
 
-def download_album(track_list, token, output_dir="./downloads"):
+def download_album(album, track_list, token, output_dir="./downloads"):
     if not track_list:
         print("\nСписок треков пуст.")
         return
 
-    collection_type = 'album'
+    # collection_type = 'album'
+
+    album_name = clean_filename(album.title)
+    album_output_dir = Path(output_dir) / album_name
+    album_output_dir.mkdir(parents=True, exist_ok=True) 
 
     total = len(track_list)
     print('\n')
-    print(f"Найдено треков: {total}")
     print("=" * 50)
+
+    # скачиваем обложку отдельным файлом (ради вайба)
+    cover_path = album_output_dir / f'{album_name}.jpg'
+    album.download_cover(cover_path, size='400x400')
+    print('!!! Файл обложки альбома сохранен')
     
     success_count = 0
     error_count = 0
@@ -202,27 +236,10 @@ def download_album(track_list, token, output_dir="./downloads"):
 
     for i, track in enumerate(track_list, start=1):
         print(f"\nТрек {i}/{total}: {track.title}")
-        album_name = "Unknown collection"
-        if track.albums:
-            album_name = f'{track.albums[0].title} ({track.albums[0].year})'
-            album_name = clean_filename(album_name)
-            
+        # filename = f'{track.title}.mp3'
 
-        filename = f'{track.title}.mp3'
-
-        track_output_dir = Path(output_dir) / album_name
-        track_output_dir.mkdir(parents=True, exist_ok=True) 
-
-        # скачиваем обложку отдельным файлом (ради вайба)
-        if file_of_cover_downloafded == False:
-            album = track.albums[0] if track.albums else None
-            cover_path = track_output_dir / f'{clean_filename(album.title)}.jpg'
-            album.download_cover(cover_path, size='400x400')
-            print('!!! Файл обложки альбома сохранен')
-            file_of_cover_downloafded = True
-        
         try:
-            download_track(track.id, token, collection_type, str(track_output_dir))
+            download_track(track.id, token, album, str(album_output_dir))
             success_count += 1
         except Exception as e:
             print(f"Ошибка при скачивании трека {track.title}: {e}")
@@ -241,7 +258,7 @@ def download_playlist(playlist, track_list, token, output_dir="./downloads"):
         print("\nСписок треков пуст.")
         return
 
-    collection_type = 'playlist'
+    # collection_type = 'playlist'
 
     playlist_name = clean_filename(playlist.title)
     playlist_output_dir = Path(output_dir) / playlist_name
@@ -249,7 +266,6 @@ def download_playlist(playlist, track_list, token, output_dir="./downloads"):
 
     total = len(track_list)
     print('\n')
-    print(f"Найдено треков: {total}")
     print("=" * 50)
     
     success_count = 0
@@ -269,7 +285,7 @@ def download_playlist(playlist, track_list, token, output_dir="./downloads"):
         #     file_of_cover_downloafded = True
         
         try:
-            download_track(track.id, token, collection_type, str(playlist_output_dir))
+            download_track(track.id, token, playlist, str(playlist_output_dir))
             success_count += 1
         except Exception as e:
             print(f"Ошибка при скачивании трека {track.title}: {e}")
@@ -283,17 +299,68 @@ def download_playlist(playlist, track_list, token, output_dir="./downloads"):
     print("=" * 50)
 
 
-def get_track_metadata(track, collection_type):
+def get_track_metadata(track, context = None):
     artist_names = [artist.name for artist in track.artists]
     artists_str = " & ".join(artist_names)  # "Artist1 & Artist2"
     
-    album = track.albums[0] if track.albums else None
-    album_title = album.title if album else "Unknown Album"
-    album_year = album.year if album else None
-    if (collection_type == 'album'):
-        track_number = None
-        track_number = track.albums[0].track_position.index
-    else: track_number = None
+    album_stupid = track.albums[0] if track.albums else None
+    album_title = None
+    album_year = album_stupid.year if album_stupid else None
+
+    track_number = None
+    disc = None
+    cover_url = None
+    
+    if isinstance(context, Album):
+        album_title = context.title
+        album_year = context.year
+
+        try:
+            cover_url = context.get_cover_url('400x400')
+        except Exception:
+            if hasattr(context, 'cover_uri') and context.cover_uri:
+                cover_url = context.cover_uri.replace('%%', '400x400')
+
+        '''
+        идем по дискам в альбоме, переданном в функию, и проверяем: если id трека из альбома совпадает с id трека, 
+        переданного в функцию, то записываем в переменную track_number номер трека из альбома (т.е. track_index)
+        Это поможет избежать путаницы в нумерации треков (тк у любого трека в поле "альбом" стоит только какой то один
+        альбом, не всегда тот, который ты скачиваешь)
+        '''
+        if context.volumes:
+            for volume_index, volume in enumerate(context.volumes, start=1):
+                for track_index, trk in enumerate(volume, start=1):
+                    if trk.id == track.id:
+                        track_number = track_index          # бля, токо бы это сработало
+                        if len(context.volumes) > 1:
+                            disc = volume_index
+                        break
+                if track_number is not None: break    
+
+
+        # track_number = track.albums[0].track_position.index
+
+    elif isinstance(context, Playlist):
+        if album_stupid:
+            album_title = album_stupid.title
+            album_year = album_stupid.year
+            try:
+                cover_url = album_stupid.get_cover_url('400x400')
+            except Exception:
+                if hasattr(album_stupid, 'cover_uri') and album_stupid.cover_uri:
+                    cover_url = album_stupid.cover_uri.replace('%%', '400x400')
+
+
+    elif isinstance(context, Track):
+        if album_stupid:
+            album_title = album_stupid.title
+            album_year = album_stupid.year
+            try:
+                cover_url = album_stupid.get_cover_url('400x400')
+            except Exception:
+                if hasattr(album_stupid, 'cover_uri') and album_stupid.cover_uri:
+                    cover_url = album_stupid.cover_uri.replace('%%', '400x400')
+
     # if collection_type == 'playlist' and hasattr(track, 'track_position'):
     #     track_number = track.track_position.index
 
@@ -303,21 +370,35 @@ def get_track_metadata(track, collection_type):
     #    track_number = track.meta_data.number
 
     
-    cover_url = None
-    if album:
-        try:
-            cover_url = album.get_cover_url('400x400')
-        except Exception:
-            if hasattr(album, 'cover_uri') and album.cover_uri:
-                cover_url = album.cover_uri.replace('%%', '400x400')
+    # cover_url = None
+    # if album:
+    #     try:
+    #         cover_url = album.get_cover_url('400x400')
+    #     except Exception:
+    #         if hasattr(album, 'cover_uri') and album.cover_uri:
+    #             cover_url = album.cover_uri.replace('%%', '400x400')
+
 
     # допольнительная информация о треке. в ЯМ обычно указывается в названии трека серым цветом  
     # example: Digeridoo Live in Cornwall, 1990
+
+    else:
+        album_stupid = track.albums[0] if track.albums else None
+        if album_stupid:
+            album_title = album_stupid.title
+            album_year = album_stupid.year
+            try:
+                cover_url = album_stupid.get_cover_url('400x400')
+            except Exception:
+                if hasattr(album_stupid, 'cover_uri') and album_stupid.cover_uri:
+                    cover_url = album_stupid.cover_uri.replace('%%', '400x400')
+
     track_version = track.version
     
     metadata = {
         "title": track.title,
         "version": track_version,
+        "disc": disc,
         "artist": artists_str,
         "album": album_title,
         "year": album_year,
@@ -331,6 +412,7 @@ def get_track_metadata(track, collection_type):
 
     print(f'\tАртист: {metadata["artist"]}')
     print(f'\tАльбом: {metadata["album"]}')
+    print(f'\tДиск: {metadata["disc"]}')
     print(f'\tГод: {metadata["year"]}')
     print(f'\tНомер трека: {metadata["track_number"]}')
     print(f'\tОбложка: {metadata["cover_url"]}')
@@ -373,10 +455,14 @@ def add_metadata_to_mp3(file_path, metadata):
     audio.tags.add(TALB(encoding=3, text=metadata['album']))
     
     if metadata.get('year'):
-        audio.tags.add(TDRC(encoding=3, text=str(metadata['year'])))
+        audio.tags.add(TDRC(encoding=3, text=str(metadata['year']))) 
+        audio.tags.add(TYER(encoding=3, text=str(metadata['year']))) 
     
     if metadata.get('track_number'):
         audio.tags.add(TRCK(encoding=3, text=str(metadata['track_number'])))
+
+    if metadata.get('disc'):
+        audio.tags.add(TPOS(encoding=3, text=str(metadata['disc']))) 
     
     # добавляем обложку
     if metadata.get('cover_url'):
@@ -406,7 +492,7 @@ def add_metadata_to_mp3(file_path, metadata):
     print("\tМетаданные добавлены")
 
 
-def download_track(track_id, token, collection_type, output_dir="./downloads"):
+def download_track(track_id, token, context, output_dir="./downloads"):
     '''
     Cкачивание трека по его id из Яндекс Музыки.
     
@@ -420,8 +506,8 @@ def download_track(track_id, token, collection_type, output_dir="./downloads"):
     client = Client(token).init()
     print('\nПолучение информации о треке...')
     track = client.tracks([track_id])[0]
-    # album = track.albums[0]
-    metadata = get_track_metadata(track, collection_type) # получаем метаданные трека в словарь
+
+    metadata = get_track_metadata(track, context) # получаем метаданные трека в словарь
 
     if metadata['version'] is not None:
         filename = f'{metadata["title"]} ({metadata["version"]}).mp3' 

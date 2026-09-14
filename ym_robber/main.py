@@ -71,7 +71,7 @@ def main():
 
         track_id = extract_track_id(url)
         if track_id:
-            collection_type = 'track'
+            track = client.tracks([track_id])[0] # получаем объект трека по его id
             print(f"\tID трека: {track_id}\n")
             while True:
                 print('Выберите папку')
@@ -83,11 +83,16 @@ def main():
                 break
                  
             try:
-                download_track(track_id, access_token, collection_type, download_path)
+                download_track(track_id, access_token, track, download_path)
                 print('Операция завершена')
-                input('\nНажмите Enter, чтобы продолжить скачивать...'
-                '\nили \'ctrl + c\' чтобы завершить работу программы...\n')
-                continue
+                ans = input('\nНажмите Enter, чтобы продолжить скачивать...'
+                            '\nИли введите \'exit\' чтобы завершить работу программы...\n')
+                if ans.lower().strip() == 'exit':
+                    print('\n\nДо свидания!')
+                    sys.exit()
+                elif ans.lower() == "":
+                    continue
+                else: continue
             except Exception as e:
                 print(f"\nОшибка: {e}\n")
                 continue
@@ -119,7 +124,7 @@ def main():
             download_playlist(playlist, tracks, access_token, download_path)
 
         elif collection_type == 'album':
-            tracks = get_tracks_from_album(client, collection_id)
+            tracks, album = get_tracks_from_album(client, collection_id)
             while True:
                 print('Выберите папку')
                 download_path = select_folder()
@@ -128,13 +133,13 @@ def main():
                     continue
                 print(f'Выбранная папка: {download_path}')
                 break
-            download_album(tracks, access_token, download_path)
+            download_album(album, tracks, access_token, download_path)
 
         print('Операция завершена')
         
         ans = input('\nНажмите Enter, чтобы продолжить скачивать...'
                     '\nИли введите \'exit\' чтобы завершить работу программы...\n')
-        if ans.lower() == 'exit':
+        if ans.lower().strip() == 'exit':
             print('\n\nДо свидания!')
             sys.exit()
         elif ans.lower() == "":

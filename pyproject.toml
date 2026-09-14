@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ym-robber"
-version = "1.0.0"
+version = "1.0.1"
 description = "Скачивание музыки из Яндекс Музыки с метаданными"
 readme = "README.md"
 license = {text = "MIT"}
