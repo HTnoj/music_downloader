@@ -18,8 +18,8 @@ from rich.progress import (
     TextColumn, TransferSpeedColumn, TimeRemainingColumn,
 )
 
-from tracks_func_async import download_track_async
-from common_func_async import clean_filename
+from ym_robber_async.tracks_func_async import download_track_async
+from ym_robber_async.common_func_async import clean_filename
 
 
 logger = logging.getLogger(__name__)

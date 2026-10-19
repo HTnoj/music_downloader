@@ -33,7 +33,9 @@ def main():
             print('Файл c токеном уже существует')
 
 
-    token_file = Path('token.txt')
+    app_data_dir = Path(user_data_dir("ym_robber", "HTnoj"))
+    app_data_dir.mkdir(parents=True, exist_ok=True)
+    token_file = app_data_dir / 'token.txt'
     
 
     if is_empty(token_file) == 1:

@@ -20,11 +20,12 @@ dependencies = [
     "pyperclip>=1.11.0",
     "rich>=13.0.0",
     "aiohttp>=3.9.0",
+    "platformdirs>=4.0.0",
 ]
 
 [project.scripts]
 ym-robber = "ym_robber.main:main"
-ym-robber-async = "ym_robber_async.main_async:main"
+ym-robber-async = "ym_robber_async.main_async:Main"
 
 [tool.setuptools.packages.find]
 include = ["*"]

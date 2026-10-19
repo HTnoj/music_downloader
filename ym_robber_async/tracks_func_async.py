@@ -14,7 +14,7 @@ from mutagen.id3 import ID3, TIT2, TPE1, TALB, TDRC, TRCK, APIC, TYER, TPOS
 from tkinter.filedialog import askdirectory
 from tkinter import Tk
 
-from common_func_async import clean_filename, is_empty
+from ym_robber_async.common_func_async import clean_filename, is_empty
 
 logger = logging.getLogger(__name__)
 

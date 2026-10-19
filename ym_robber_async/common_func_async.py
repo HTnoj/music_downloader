@@ -16,12 +16,14 @@ from tkinter import Tk
 
 def is_empty(file):
     """
-    True если файла cуществует и пустой или не существует
-    False иначе
+    True, если файла нет ИЛИ он пустой
+    False, если в файле есть данные
     """
-    if (os.path.exists(file) and os.path.getsize(file) == 0):
+    if not os.path.exists(file):
         return True
-    else: return False
+    if os.path.getsize(file) == 0:
+        return True
+    return False
 
 
 def on_code(code):

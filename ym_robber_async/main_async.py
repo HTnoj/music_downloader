@@ -9,6 +9,7 @@ import pyperclip
 import logging
 import argparse
 
+from platformdirs import user_data_dir
 from yandex_music import ClientAsync
 from yandex_music import Client
 from pathlib import Path
@@ -22,10 +23,10 @@ from rich.progress import (
     TextColumn, TransferSpeedColumn, TimeRemainingColumn,
 )
 
-from tracks_func_async import download_track_async
-from playlists_func_async import get_tracks_from_playlist__async, download_playlist__async
-from common_func_async import on_code, is_empty, extract_collection_id, select_folder
-from album_func_async import get_tracks_from_album__async, download_album__async
+from ym_robber_async.tracks_func_async import download_track_async
+from ym_robber_async.playlists_func_async import get_tracks_from_playlist__async, download_playlist__async
+from ym_robber_async.common_func_async import on_code, is_empty, extract_collection_id, select_folder
+from ym_robber_async.album_func_async import get_tracks_from_album__async, download_album__async
 
 
 width, _ = shutil.get_terminal_size()
@@ -116,16 +117,11 @@ async def main():
         print(full_line_equals)
         tprint (emblem_text1)
         print(full_line_equals)
+        
 
-        if not os.path.exists('token.txt'):
-            try:
-                with open('token.txt', 'x', encoding='utf-8') as f:
-                    pass
-            except FileExistsError:
-                print('Файл c токеном уже существует')
-
-
-        token_file = Path('token.txt')
+        app_data_dir = Path(user_data_dir("ym_robber", "HTnoj"))
+        app_data_dir.mkdir(parents=True, exist_ok=True)
+        token_file = app_data_dir / 'token.txt'
 
 
         if is_empty(token_file) == 1:
@@ -298,9 +294,11 @@ async def main():
             else: continue
         
         
-
+def Main():
+    # Запускаем event loop и передаем ему асинхронную функцию
+    asyncio.run(main())
 
     
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    Main()
