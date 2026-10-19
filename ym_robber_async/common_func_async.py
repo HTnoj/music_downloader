@@ -15,6 +15,10 @@ from tkinter import Tk
 
 
 def is_empty(file):
+    """
+    True если файла cуществует и пустой или не существует
+    False иначе
+    """
     if (os.path.exists(file) and os.path.getsize(file) == 0):
         return True
     else: return False

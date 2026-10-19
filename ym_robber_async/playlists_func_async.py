@@ -147,8 +147,8 @@ async def get_tracks_from_playlist__async(client, playlist_id, max_concurrent=5)
 
 async def download_playlist__async(client, session, playlist, track_list, output_dir="./downloads", max_concurrent = 4):
     if not track_list:
-        print("\nСписок треков пуст.")
-        return
+        logger.error(f'Список треков пуст')
+        return [], None
 
     playlist_name = clean_filename(playlist.title)
     playlist_output_dir = Path(output_dir) / playlist_name
@@ -169,7 +169,7 @@ async def download_playlist__async(client, session, playlist, track_list, output
 
         
         task_ids = {
-            track.id: progress.add_task(f" {track.title[:60]}", total=None)
+            track.id: progress.add_task(f"    {track.title[:60]}", total=None)
             for track in track_list
         }
         
@@ -179,7 +179,7 @@ async def download_playlist__async(client, session, playlist, track_list, output
                 task_id = task_ids[track.id]
                 try:
                     _, metadata, bitrate = await download_track_async(session, track, playlist, str(playlist_output_dir), progress=progress, task_id=task_id)
-                    progress.update(task_id, description=f"[green]o {track.title[:50]}")
+                    progress.update(task_id, description=f"[green]  o {track.title[:50]}")
                     results.append({
                         "track": track,
                         "metadata": metadata,
@@ -189,7 +189,7 @@ async def download_playlist__async(client, session, playlist, track_list, output
                     })
                     logger.info(f"OK {track.title}")
                 except Exception as e:
-                    progress.update(task_id, description=f"[red]x {track.title[:50]}")
+                    progress.update(task_id, description=f"[red]  x {track.title[:50]}")
                     results.append({
                         "track": track,
                         "metadata": None,

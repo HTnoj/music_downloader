@@ -7,6 +7,7 @@ import requests
 import shutil
 import pyperclip
 import logging
+import argparse
 
 from yandex_music import ClientAsync
 from yandex_music import Client
@@ -24,6 +25,7 @@ from rich.progress import (
 from tracks_func_async import download_track_async
 from playlists_func_async import get_tracks_from_playlist__async, download_playlist__async
 from common_func_async import on_code, is_empty, extract_collection_id, select_folder
+from album_func_async import get_tracks_from_album__async, download_album__async
 
 
 width, _ = shutil.get_terminal_size()
@@ -33,41 +35,57 @@ full_line_equals = text.ljust(width, "=")
 emblem_text1 = text*40 + 'YM_robber'
 emblem_text2 = 'YM_robber'
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-def setup_logging():
-    log_file = Path(__file__).parent / 'ym_robber.log'
-    
-    console_handler = RichHandler(
-        rich_tracebacks=True,   
-        show_path=False,        
-        show_time=True,         
-        show_level=True,        
-        markup=True,
-    )
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter("%(message)s"))
-    
+def setup_logging(show_console = True):
+    handlers = []
+    log_file = Path(__file__).parent / 'ym_robber_async.log'
+        
     file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=5_000_000,  
-        backupCount=2,        
-        encoding='utf-8',
-    )
+                log_file,
+                maxBytes = 5_000_000,  
+                backupCount = 2,        
+                encoding = 'utf-8',
+            )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter(
         '%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
+        datefmt = '%Y-%m-%d %H:%M:%S',
     ))
-    
+    handlers.append(file_handler)
+    if show_console:
+        console_handler = RichHandler(
+                rich_tracebacks = True,   
+                show_path = False,        
+                show_time = True,         
+                show_level = True,        
+                markup = True,
+            )
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter("%(message)s"))
+        handlers.append(console_handler)
+
     logging.basicConfig(
-        level=logging.INFO,
-        handlers=[console_handler, file_handler],
-        force=True,  # на случай, если какая нибудь библиотека вызовет свой logging.basicConfig()
-    )
-    
+            level = logging.INFO,
+            handlers = handlers,
+            force = True,  # на случай, если какая нибудь библиотека вызовет свой logging.basicConfig()
+        )
+        
     logging.getLogger(__name__).info(f"Логи: {log_file}")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog='ym-robber',
+        description='Скачивание музыки из Яндекс Музыки',
+    )
+    parser.add_argument(
+        '-q', '--quiet',
+        action = 'store_false',
+        help = 'Не показывать логи в консоли (в файл пишутся всегда)',
+    )
+    return parser.parse_args()
 
 
 def show_report(results, playlist_output_dir):
@@ -92,9 +110,9 @@ def show_report(results, playlist_output_dir):
 
 
 async def main():
+    args = parse_args()
+    setup_logging(show_console = args.quiet)
     async with aiohttp.ClientSession() as session:
-        setup_logging()
-
         print(full_line_equals)
         tprint (emblem_text1)
         print(full_line_equals)
@@ -207,7 +225,7 @@ async def main():
 
             elif collection_type == 'playlist':
                 print(f'\tНайден плейлист. ID: {collection_id}')
-                tracks, playlist = await get_tracks_from_playlist__async(client, collection_id)
+                tracks, playlist = await get_tracks_from_playlist__async(client, collection_id, 5)
                 if not tracks or not playlist:
                     print('Не удалось получить треки плейлиста')
                     continue
@@ -231,7 +249,7 @@ async def main():
                     print('Выберите папку')
                     download_path = select_folder()
                     if download_path is None:
-                        print('Папка не выбрана.')
+                        logger.warning(f'Пользователь не выбрал папку для загрузки')
                         continue
                     print(f'Выбранная папка: {download_path}')
                     break
@@ -239,28 +257,36 @@ async def main():
                 results, output_path = await download_playlist__async(client, session, playlist, tracks, download_path, 4)
                 show_report(results, output_path)
 
-            # elif collection_type == 'album':
-            #     tracks, album = get_tracks_from_album(client, collection_id)
-            #     while True:
-            #         print('Выберите папку')
-            #         download_path = select_folder()
-            #         if download_path is None:
-            #             print('Папка не выбрана.')
-            #             continue
-            #         print(f'Выбранная папка: {download_path}')
-            #         break
-            #     download_album(album, tracks, access_token, download_path)
+            elif collection_type == 'album':
+                tracks, album = await get_tracks_from_album__async(client, collection_id, 4)
+                if not tracks or not album:
+                    print('Не удалось получить треки плейлиста')
+                    continue
 
-            # print('Операция завершена')
+                print(f'\nНазвание альбома: {album.title}')
+                print(f"Исполнитель: {', '.join([artist.name for artist in album.artists])}")
+                print(f'Год: {album.year}')
+                total = len(tracks)
+                print(f"Найдено треков: {total}")
+                print("=" * 60)
+                print('Список треков:')
+        
+                for track in tracks:
+                        artists = ''
+                        if track.artists:
+                            artists = ' - ' + ', '.join(artist.name for artist in track.artists)
+                        print(f'\t>  {track.title + artists}')
+                while True:
+                    print('Выберите папку')
+                    download_path = select_folder()
+                    if download_path is None:
+                        logger.warning(f'Пользователь не выбрал папку для загрузки')
+                        continue
+                    logger.info(f'Пользователь выбрал папку для загрузки: {download_path}')
+                    break
+                results, output_path = await download_album__async(session, album, tracks, download_path, 4)
+                show_report(results, output_path)
 
-            # ans = input('\nНажмите Enter, чтобы продолжить скачивать...'
-            #             '\nИли введите \'exit\' чтобы завершить работу программы...\n')
-            # if ans.lower().strip() == 'exit':
-            #     print('\n\nДо свидания!')
-            #     sys.exit()
-            # elif ans.lower() == "":
-            #     continue
-            # else: continue
 
             ans = input('\nНажмите Enter, чтобы продолжить скачивать...'
                                 '\nИли введите \'exit\' чтобы завершить работу программы...\n')
