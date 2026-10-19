@@ -129,7 +129,7 @@ def get_tracks_from_playlist(client, playlist_id):
     '''
     try:
         # Получаем плейлист напрямую по ID
-        playlist = client.playlist(playlist_id) 
+        playlist = client.playlist(playlist_id)  
         
         if not playlist:
             print('Плейлист не найден')
@@ -215,9 +215,9 @@ def download_album(album, track_list, token, output_dir="./downloads"):
         return
 
     # collection_type = 'album'
-
-    album_name = clean_filename(album.title)
-    album_output_dir = Path(output_dir) / album_name
+    album_year = album.year
+    album_name = clean_filename(album.title) + str(f' ({album_year})')
+    album_output_dir = Path(output_dir) / album_name 
     album_output_dir.mkdir(parents=True, exist_ok=True) 
 
     total = len(track_list)
@@ -226,13 +226,13 @@ def download_album(album, track_list, token, output_dir="./downloads"):
 
     # скачиваем обложку отдельным файлом (ради вайба)
     cover_path = album_output_dir / f'{album_name}.jpg'
-    album.download_cover(cover_path, size='400x400')
+    album.download_cover(cover_path, size='1000x1000')
     print('!!! Файл обложки альбома сохранен')
     
     success_count = 0
     error_count = 0
 
-    file_of_cover_downloafded = False
+    # file_of_cover_downloafded = False
 
     for i, track in enumerate(track_list, start=1):
         print(f"\nТрек {i}/{total}: {track.title}")
